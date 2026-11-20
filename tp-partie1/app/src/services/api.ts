@@ -1,44 +1,54 @@
-/*
- * Tous les appels à l'API passent par ce fichier.
- * Les pages n'utilisent jamais fetch() directement.
- */
+import type { Categorie, Commande, NouvelleCommande, Plat } from '@/types/gargote';
+
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-async function requete(chemin, options = {}) {
+export class ErreurApi extends Error {
+  constructor(
+    message: string,
+    public statut: number,
+    public details: Record<string, string> = {},
+  ) {
+    super(message);
+    this.name = 'ErreurApi';
+  }
+}
+
+async function requete<T>(chemin: string, options: RequestInit = {}): Promise<T> {
   const reponse = await fetch(BASE_URL + chemin, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   });
 
-  const donnees = reponse.status === 204 ? null : await reponse.json();
-
+  const donnees: unknown = reponse.status === 204 ? null : await reponse.json();
   if (!reponse.ok) {
-    const erreur = new Error(donnees?.message ?? `Erreur HTTP ${reponse.status}`);
-    erreur.statut = reponse.status;
-    erreur.details = donnees?.erreurs ?? {};
-    throw erreur;
+    const erreur = donnees as { message?: string; erreurs?: Record<string, string> } | null;
+    throw new ErreurApi(
+      erreur?.message ?? `Erreur HTTP ${reponse.status}`,
+      reponse.status,
+      erreur?.erreurs ?? {},
+    );
   }
-  return donnees;
+  return donnees as T;
 }
 
 export default {
-  getCategories() {
-    return requete('/categories');
+  getCategories(): Promise<Categorie[]> {
+    return requete<Categorie[]>('/categories');
   },
 
-  getPlats(categorieId) {
-    return requete(categorieId ? `/plats?categorie=${categorieId}` : '/plats');
+  getPlats(categorieId?: number | null): Promise<Plat[]> {
+    return requete<Plat[]>(categorieId ? `/plats?categorie=${categorieId}` : '/plats');
   },
 
-  getPlat(id) {
-    return requete(`/plats/${id}`);
+  getPlat(id: number): Promise<Plat> {
+    return requete<Plat>(`/plats/${id}`);
   },
 
-  getCommandes() {
-    return requete('/commandes');
+  getCommandes(): Promise<Commande[]> {
+    return requete<Commande[]>('/commandes');
   },
 
-  creerCommande(commande) {
-    return requete('/commandes', { method: 'POST', body: JSON.stringify(commande) });
+  creerCommande(commande: NouvelleCommande): Promise<Commande> {
+    return requete<Commande>('/commandes', { method: 'POST', body: JSON.stringify(commande) });
   },
 };
