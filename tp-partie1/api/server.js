@@ -177,7 +177,7 @@ async function router(req, res) {
       const quantite = Number(l.quantite);
       if (!plat) return envoyer(res, 422, { message: 'Données invalides.', erreurs: { lignes: `Plat ${l.plat_id} inconnu.` } });
       if (!Number.isInteger(quantite) || quantite < 1) {
-        return envoyer(res, 422, { message: 'Données invalides.', erreurs: { lignes: `Quantité invalide pour « ${plat.nom} ».` } });
+        -010return envoyer(res, 422, { message: 'Données invalides.', erreurs: { lignes: `Quantité invalide pour « ${plat.nom} ».` } });
       }
       if (!plat.disponible) return envoyer(res, 409, { message: `« ${plat.nom} » n'est plus disponible.` });
       lignes.push({
